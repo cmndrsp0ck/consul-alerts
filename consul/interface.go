@@ -80,6 +80,8 @@ type Consul interface {
 	OpsGenieNotifier() *notifier.OpsGenieNotifier
 	AwsSnsNotifier() *notifier.AwsSnsNotifier
 	VictorOpsNotifier() *notifier.VictorOpsNotifier
+	HttpEndpointNotifier() *notifier.HttpEndpointNotifier
+	ILertNotifier() *notifier.ILertNotifier
 
 	CheckChangeThreshold() int
 	UpdateCheckData()
@@ -93,7 +95,7 @@ type Consul interface {
 	CheckStatus(node, statusId, checkId string) (status, output string)
 	CheckKeyExists(key string) bool
 
-	GetProfileInfo(node, serviceID, checkID string) ProfileInfo
+	GetProfileInfo(node, serviceID, checkID, status string) ProfileInfo
 
 	GetReminders() []notifier.Message
 	SetReminder(m notifier.Message)
@@ -168,6 +170,16 @@ func DefaultAlertConfig() *ConsulAlertConfig {
 		Enabled: false,
 	}
 
+	httpEndpoint := &notifier.HttpEndpointNotifier{
+		Enabled:     false,
+		ClusterName: "Consul-Alerts",
+  }
+    
+	ilert := &notifier.ILertNotifier{
+		Enabled:             false,
+		IncidentKeyTemplate: "{{.Node}}:{{.Service}}:{{.Check}}",
+	}
+
 	notifiers := &notifier.Notifiers{
 		Email:             email,
 		Log:               log,
@@ -180,6 +192,8 @@ func DefaultAlertConfig() *ConsulAlertConfig {
 		OpsGenie:          opsgenie,
 		AwsSns:            awsSns,
 		VictorOps:         victorOps,
+		HttpEndpoint:      httpEndpoint,
+		ILert:             ilert,
 		Custom:            []string{},
 	}
 

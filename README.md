@@ -288,11 +288,26 @@ Ex. `emailer_only` would be located at `consul-alerts/config/notif-profiles/emai
 }
 ```
 
+**Example - Notification Profile to disable Slack:**
+
+**Key:** `consul-alerts/config/notif-profiles/slack_off`
+
+**Value:**
+```
+{
+  "Interval": 0,
+  "NotifList": {
+    "slack":false
+  }
+}
+```
+
 #### Notification Profile Activation
 
 It is possible to activate Notification Profiles in 2 ways - for a specific entity or for a set of entities matching a regular expression.
-For a specific item the selection is done by setting keys in `consul-alerts/config/notif-selection/services/`, `consul-alerts/config/notif-selection/checks/`, or `consul-alerts/config/notif-selection/hosts/` with the appropriate service, check, or host name as the key and the desired Notification Profile name as the value.
-To activate a Notification Profile for a set of entities matching a regular expression, create a json map of type `regexp->notification-profile` as a value for the keys `consul-alerts/config/notif-selection/services`, `consul-alerts/config/notif-selection/checks`, or `consul-alerts/config/notif-selection/hosts`.
+For a specific item the selection is done by setting keys in `consul-alerts/config/notif-selection/services/`, `consul-alerts/config/notif-selection/checks/`, `consul-alerts/config/notif-selection/hosts/`, or `consul-alerts/config/notif-selection/status/`, with the appropriate service, check, or host name as the key and the desired Notification Profile name as the value.
+To activate a Notification Profile for a set of entities matching a regular expression, create a json map of type `regexp->notification-profile` as a value for the keys `consul-alerts/config/notif-selection/services`, `consul-alerts/config/notif-selection/checks`, `consul-alerts/config/notif-selection/hosts`, or
+`consul-alerts/config/notif-selection/status`.
 
 **Example - Notification Profile activated for all the services which names start with infra-**
 
@@ -305,6 +320,12 @@ To activate a Notification Profile for a set of entities matching a regular expr
 }
 ```
 
+**Example - Disable slack notifications when status is passing-**
+
+**Key:** `consul-alerts/config/notif-selection/status/passing`
+
+**Value:** `slack_off`
+
 In addition to the service, check and host specific Notification Profiles, the operator can setup a default Notification Profile by creating a Notification Profile kv `consul-alerts/config/notif-profiles/default`, which acts as a fallback in the event a specific Notification Profile is not found.  If there are no Notification Profiles matching the criteria, consul-alerts will send the notification to the full list of enabled Notifiers and no reminders will be sent.
 
 As consul-alerts attempts to process a given notification, it has a series of lookups it does to associate an event with a given Notification Profile by matching on:
@@ -312,6 +333,7 @@ As consul-alerts attempts to process a given notification, it has a series of lo
 - Service
 - Check
 - Host
+- Status
 - Default
 
 **NOTE:** An event will only trigger notification for the FIRST Notification Profile that meets it's criteria.
@@ -473,12 +495,14 @@ To enable PagerDuty built-in notifier, set `consul-alerts/config/notifiers/pager
 
 prefix: `consul-alerts/config/notifiers/pagerduty/`
 
-| key         | description                                     |
-|-------------|-------------------------------------------------|
-| enabled     | Enable the PagerDuty notifier. [Default: false] |
-| service-key | Service key to access PagerDuty                 |
-| client-name | The monitoring client name                      |
-| client-url  | The monitoring client url                       |
+| key                 | description                                                          |
+|---------------------|----------------------------------------------------------------------|
+| enabled             | Enable the PagerDuty notifier. [Default: false]                      |
+| service-key         | Service key to access PagerDuty                                      |
+| client-name         | The monitoring client name                                           |
+| client-url          | The monitoring client url                                            |
+| max-retry           | The upper limit of retries on failure. [Default: `0` for no retries] |
+| retry-base-interval | The base delay in seconds before a retry. [Default: `30` seconds ]   |
 
 #### HipChat
 
@@ -547,6 +571,41 @@ prefix: `consul-alerts/config/notifiers/victorops/`
 | api-key      | API Key                              (mandatory)    |
 | routing-key  | Routing Key                          (mandatory)    |
 
+#### HTTP Endpoint
+
+To enable the HTTP endpoint built-in notifier, set
+`consul-alerts/config/notifiers/http-endpoint/enabled` to `true`. HTTP endpoint details
+needs to be configured.
+
+prefix: `consul-alerts/config/notifiers/http-endpoint/`
+
+| key          | description                                                           |
+|--------------|-----------------------------------------------------------------------|
+| enabled      | Enable the http-endpoint notifier.         [Default: false]           |
+| cluster-name | The name of the cluster.                   [Default: "Consul Alerts"] |
+| base-url     | Base URL of the HTTP endpoint              (mandatory)                |
+| endpoint     | The endpoint to append to the end of base-url                         |
+| payload      | The payload to send to the HTTP endpoint   (mandatory)                |
+
+The value of 'payload' must be a json map of type string. Value will be rendered as a template.
+```
+{
+  "message": "{{ range $name, $checks := .Nodes }}{{ range $check := $checks }}{{ $name }}:{{$check.Service}}:{{$check.Check}} is {{$check.Status}}.{{ end }}{{ end }}"
+}
+```
+#### iLert
+
+To enable iLert built-in notifier, set
+`consul-alerts/config/notifiers/ilert/enabled` to `true`. Service API
+key needs to be configured.
+
+prefix: `consul-alerts/config/notifiers/ilert/`
+
+| key                   | description                                                               |
+|-----------------------|---------------------------------------------------------------------------|
+| enabled               | Enable the iLert notifier. [Default: false]                               |
+| api-key               | The API key of the alert source. (mandatory)                              |
+| incident-key-template | Format of the incident key. [Default: `{{.Node}}:{{.Service}}:{{.Check}}` |
 
 Health Check via API
 --------------------
